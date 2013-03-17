@@ -30,14 +30,22 @@
         var FLOOR_SIZE = 100;
         var FLOOR_HEIGHT = -56
 
+        var physicsWorker = null;
+
         // CubicVR code
 
-        function startUp() {
+        function startUp(NUM) {
+          var NUMRANGE = [];
+          while (NUMRANGE.length < NUM) NUMRANGE.push(NUMRANGE.length+1);
+
           document.getElementById('postdiv').innerHTML = '(' + NUM + ' cubes)';
 
+          //document.getElementById('before').style.visibility = 'hidden';
+          document.getElementById('during').style.visibility = 'visible';
+
           var canvas = document.getElementById("canvas");
-          canvas.width = screen.width*0.70;
-          canvas.height = screen.height*0.55;
+          canvas.width = screen.width*0.75;
+          canvas.height = screen.height*0.50;
 
           var gl = CubicVR.GLCore.init(canvas);
 
@@ -62,27 +70,27 @@
           scene.camera.position = [0, 2.4, 17];
           scene.camera.target = [0, 2.4, 0];
 
-          var boxMaterials = NUMRANGE.map(function(i) {
-            return new CubicVR.Material({
+          var boxMaterials = [];
+          var boxMeshes = [];
+
+          for (var i = 0; i < 5; i++) {
+            boxMaterials[i] = new CubicVR.Material({
               textures: {
-                color: new CubicVR.Texture("cube" + (Math.floor(Math.random()*5)+1) + ".jpg")
+                color: new CubicVR.Texture("cube" + (i+1) + ".jpg")
               }
             });
-          });
-
-          var boxMeshes = boxMaterials.map(function(boxMaterial) {
-            return new CubicVR.primitives.box({
+            boxMeshes[i] = new CubicVR.primitives.box({
               size: 2.0,
-              material: boxMaterial,
+              material: boxMaterials[i],
               uvmapper: {
                 projectionMode: CubicVR.enums.uv.projection.CUBIC,
                 scale: [2, 2, 2]
               }
             }).calcNormals().triangulateQuads().compile().clean();
-          });
+          }
 
           for (var i = 0; i < NUM; i++) {
-            boxes[i] = new CubicVR.SceneObject({ mesh: boxMeshes[i], position: [0, -10000, 0] });
+            boxes[i] = new CubicVR.SceneObject({ mesh: boxMeshes[Math.floor(Math.random()*5)], position: [0, -10000, 0] });
             scene.bindSceneObject(boxes[i], true);
           }
 
@@ -105,9 +113,12 @@
 
           // Worker
 
-          var physicsWorker = new Worker('worker.js');
+          if (physicsWorker) physicsWorker.terminate();
+          physicsWorker = new Worker('worker.js');
+
           physicsWorker.onmessage = function(event) {
             var data = event.data;
+            if (data.objects.length != NUM) return;
             for (var i = 0; i < NUM; i++) {
               var physicsObject = data.objects[i];
               var renderObject = boxes[i];
@@ -122,6 +133,7 @@
             }
             currFPS = data.fps;
           };
+          physicsWorker.postMessage(NUM);
 
           // Main loop
 
@@ -135,20 +147,37 @@
         }
       </script>
     </head>
-    <body onload="startUp()">
+    <body onload="document.getElementById('during').style.visibility = 'hidden'">
       <center>
-        <h2>ammo.js WebGL Demo</h2>
+        <h2>ammo.js benchmark</h2>
 
-        <canvas id="canvas" width="600" height="500"></canvas>
-        <br><br>
-        <div>Physics FPS: <input type="text" id="out" readonly="1" size="3"></div><div id="postdiv"></div>
+        <canvas id="canvas" width="1" height="1"></canvas>
+        <br>
+        <div id="before">
+          <form>
+            Boxes:
+            <select name="boxes">
+              <option value="10">10</option>
+              <option value="50">50</option>
+              <option value="100">100</option>
+              <option value="200">200</option>
+              <option value="300" selected>300</option>
+              <option value="500">500</option>
+              <option value="750">750</option>
+              <option value="1000">1000</option>
+              <option value="1500">1500</option>
+              <option value="2500">2500</option>
+            </select>
+            <input type="button" value="go!" onclick="startUp(boxes.value);">
+          </form>
+        </div>
+        <div id="during"><div>Physics FPS: <input type="text" id="out" readonly="1" size="3"></div><div id="postdiv"></div></div>
         <p>
         This is <b><a href="https://github.com/kripken/ammo.js">ammo.js</a></b>, a port of
         the <b><a href="http://www.bulletphysics.com">Bullet physics engine</a></b> from C++ to JavaScript
-        using <b><a href="http://emscripten.org">Emscripten</a></b>. WebGL rendering in this demo is done using
+        using <b><a href="http://emscripten.org">Emscripten</a></b> in
+        <b><a href="http://asmjs.org">asm.js</a></b> mode. WebGL rendering in this demo is done using
         <b><a href="https://github.com/cjcliffe/CubicVR.js/">CubicVR.js</a></b>.
-        </p><p>
-        Adjust the view by dragging the mouse over the canvas.
         </p>
       </center>
     </body>
