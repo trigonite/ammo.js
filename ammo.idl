@@ -73,7 +73,7 @@ btDefaultMotionState implements btMotionState;
 interface btCollisionObject {
   btCollisionShape getCollisionShape();
   void setContactProcessingThreshold(float contactProcessingThreshold);
-  void setActivationState(long newState);  
+  void setActivationState(long newState);
   void forceActivationState(long newState);
   void activate(optional boolean forceActivation);
   boolean isActive();
@@ -163,7 +163,7 @@ interface ConvexResultCallback {
 [Prefix="btCollisionWorld::"]
 interface ClosestConvexResultCallback {
   void ClosestConvexResultCallback([Const, Ref] btVector3 convexFromWorld, [Const, Ref] btVector3 convexToWorld);
-    
+
   [Value] attribute btVector3 m_convexFromWorld;
   [Value] attribute btVector3 m_convexToWorld;
   [Value] attribute btVector3 m_hitNormalWorld;
@@ -249,6 +249,7 @@ btConeShapeZ implements btConeShape;
 interface btCompoundShape {
   void btCompoundShape(optional boolean enableDynamicAabbTree);
   void addChildShape([Const, Ref] btTransform localTransform, btCollisionShape shape);
+  void recalculateLocalAabb();
 };
 btCompoundShape implements btCollisionShape;
 
@@ -266,7 +267,7 @@ interface btConcaveShape {
 btConcaveShape implements btCollisionShape;
 
 interface btStaticPlaneShape {
-  void btStaticPlaneShape([Const, Ref] btVector3 planeNormal, float planeConstant); 
+  void btStaticPlaneShape([Const, Ref] btVector3 planeNormal, float planeConstant);
 };
 btStaticPlaneShape implements btConcaveShape;
 
@@ -278,6 +279,22 @@ interface btBvhTriangleMeshShape {
   void btBvhTriangleMeshShape(btStridingMeshInterface meshInterface, boolean useQuantizedAabbCompression, optional boolean buildBvh);
 };
 btBvhTriangleMeshShape implements btTriangleMeshShape;
+
+interface btGImpactMeshShape {
+  void btGImpactMeshShape(btStridingMeshInterface meshInterface);
+  void updateBound();
+  void postUpdate();
+};
+btGImpactMeshShape implements btConcaveShape;
+
+interface btCollisionAlgorithmConstructionInfo {
+  void btCollisionAlgorithmConstructionInfo();
+};
+
+interface btGImpactCollisionAlgorithm {
+  void btGImpactCollisionAlgorithm([Const, Ref] btCollisionAlgorithmConstructionInfo ci, [Const] btCollisionObjectWrapper body0Wrap, [Const] btCollisionObjectWrapper body1Wrap);
+  static void registerAlgorithm(btCollisionDispatcher dispatcher);
+};
 
 interface btDefaultCollisionConstructionInfo {
   void btDefaultCollisionConstructionInfo();
@@ -292,7 +309,7 @@ interface btPersistentManifold {
   [Const] btCollisionObject getBody0();
   [Const] btCollisionObject getBody1();
   long getNumContacts();
-  [Ref] btManifoldPoint getContactPoint(long index);  
+  [Ref] btManifoldPoint getContactPoint(long index);
 };
 
 interface btDispatcher {
@@ -348,7 +365,7 @@ interface btRigidBodyConstructionInfo {
 
 interface btRigidBody {
   void btRigidBody([Const, Ref] btRigidBodyConstructionInfo constructionInfo);
-  
+
   [Const, Ref] btTransform getCenterOfMassTransform();
   void setCenterOfMassTransform([Const, Ref] btTransform xform);
   void setSleepingThresholds(float linear, float angular);
@@ -367,6 +384,7 @@ interface btRigidBody {
   void setLinearVelocity([Const, Ref] btVector3 lin_vel);
   void setAngularVelocity([Const, Ref] btVector3 ang_vel);
   btMotionState getMotionState();
+  void setMotionState(btMotionState motionState);
   void setAngularFactor([Const, Ref] btVector3 angularFactor);
   btRigidBody upcast([Const] btCollisionObject colObj);
 };
@@ -447,7 +465,7 @@ interface btDispatcherInfo {
   attribute long m_stepCount;
   attribute long m_dispatchFunc;
   attribute float m_timeOfImpact;
-  attribute boolean m_useContinuous; 
+  attribute boolean m_useContinuous;
   attribute boolean m_enableSatConvex;
   attribute boolean m_enableSPU;
   attribute boolean m_useEpa;
@@ -459,12 +477,12 @@ interface btDispatcherInfo {
 interface btCollisionWorld {
   btDispatcher getDispatcher();
   void rayTest([Const, Ref] btVector3 rayFromWorld, [Const, Ref] btVector3 rayToWorld, [Ref] RayResultCallback resultCallback);
-  btOverlappingPairCache getPairCache(); 
+  btOverlappingPairCache getPairCache();
   [Ref] btDispatcherInfo getDispatchInfo();
   void addCollisionObject(btCollisionObject collisionObject, optional short collisionFilterGroup, optional short collisionFilterMask);
   [Const] btBroadphaseInterface getBroadphase ();
-  void convexSweepTest([Const] btConvexShape castShape, [Const, Ref] btTransform from, [Const, Ref] btTransform to, [Ref] ConvexResultCallback resultCallback, float allowedCcdPenetration); 
-  void contactPairTest([Const] btCollisionObject colObjA, [Const] btCollisionObject colObjB, [Ref] ContactResultCallback resultCallback);  
+  void convexSweepTest([Const] btConvexShape castShape, [Const, Ref] btTransform from, [Const, Ref] btTransform to, [Ref] ConvexResultCallback resultCallback, float allowedCcdPenetration);
+  void contactPairTest([Const] btCollisionObject colObjA, [Const] btCollisionObject colObjB, [Ref] ContactResultCallback resultCallback);
 };
 
 interface btDynamicsWorld {
@@ -497,7 +515,7 @@ interface btVehicleTuning {
   attribute float m_suspensionDamping;
   attribute float m_maxSuspensionTravelCm;
   attribute float m_frictionSlip;
-  attribute float m_maxSuspensionForce; 
+  attribute float m_maxSuspensionForce;
 };
 
 interface btVehicleRaycaster {
@@ -580,5 +598,3 @@ btPairCachingGhostObject implements btGhostObject;
 interface btGhostPairCallback {
   void btGhostPairCallback();
 };
-
-
